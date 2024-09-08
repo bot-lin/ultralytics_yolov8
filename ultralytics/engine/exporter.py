@@ -1019,10 +1019,31 @@ def export(cfg=DEFAULT_CFG):
     cfg.model = cfg.model or 'yolov8n.yaml'
     cfg.format = cfg.format or 'torchscript'
 
+    print(f'Exporting {cfg.model} to {cfg.format}...')
+
     from ultralytics import YOLO
     model = YOLO(cfg.model)
     model.export(**vars(cfg))
 
+import subprocess
+def send_file_via_scp_with_key(local_file, remote_host, remote_path, copy_path, username, key_path):
+    try:
+        # Construct the scp command
+        scp_command = [
+            "scp", "-i", key_path, local_file, f"{username}@{remote_host}:{remote_path}"
+        ]
+        
+        # Run the command
+        subprocess.run(scp_command, check=True)
+        
+        print("File sent successfully!")
+        ssh_command = [
+            "ssh", "-i", key_path, f"{username}@{remote_host}", f"cp {remote_path} {copy_path}"
+        ]
+        subprocess.run(ssh_command, check=True)
+        print(f"File copied successfully to {copy_path}")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to send file: {e}")
 
 if __name__ == '__main__':
     """
@@ -1030,3 +1051,15 @@ if __name__ == '__main__':
     yolo mode=export model=yolov8n.yaml format=onnx
     """
     export()
+
+    print('Export complete. Use `yolo mode=serve` to start the server.')
+    file_name = "{}.onnx".format(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+    send_file_via_scp_with_key(
+        "best.onnx", 
+        "10.6.75.46", 
+        "/home/zc/rknn/{}".format(file_name),
+        "/home/zc/rknn/test.onnx", 
+        "zc", 
+        "/Users/linzheng/.ssh/id_ed2551")
+
+
